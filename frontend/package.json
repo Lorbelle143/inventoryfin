@@ -1,0 +1,29 @@
+{
+  "name": "inventory-financial-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "inventory-financial-system": "file:..",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-is": "^19.2.6",
+    "react-router-dom": "^6.28.0",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.1"
+  }
+}

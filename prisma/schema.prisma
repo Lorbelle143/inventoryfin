@@ -1,0 +1,76 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Account {
+  id        Int      @id @default(autoincrement())
+  balance   Float    @default(0)
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  name          String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  account       Account?
+  items         InventoryItem[]
+  transactions  Transaction[]
+  refreshTokens RefreshToken[]
+}
+
+model InventoryItem {
+  id           Int               @id @default(autoincrement())
+  name         String
+  quantity     Int               @default(0)
+  unitPrice    Float             @default(0)
+  totalValue   Float             @default(0)
+  userId       Int
+  user         User              @relation(fields: [userId], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  transactions ItemTransaction[]
+}
+
+model Transaction {
+  id          Int               @id @default(autoincrement())
+  type        String
+  description String
+  amount      Float
+  userId      Int
+  user        User              @relation(fields: [userId], references: [id])
+  createdAt   DateTime          @default(now())
+  items       ItemTransaction[]
+}
+
+model ItemTransaction {
+  id            Int           @id @default(autoincrement())
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+  transactionId Int
+  item          InventoryItem @relation(fields: [itemId], references: [id])
+  itemId        Int
+  quantity      Int
+  unitPrice     Float
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
