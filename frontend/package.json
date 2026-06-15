@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "inventory-financial-system": "file:..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-is": "^19.2.6",
