@@ -50,6 +50,9 @@ export default function LoginPage() {
 
         <div className="auth-footer">
           <div className="auth-link-row">
+            <button className="link-button" onClick={() => navigate("/forgot-password")}>Forgot password?</button>
+          </div>
+          <div className="auth-link-row" style={{ marginTop: 8 }}>
             Don't have an account?{" "}
             <button className="link-button" onClick={() => navigate("/register")}>Sign up</button>
           </div>

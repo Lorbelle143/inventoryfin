@@ -7,9 +7,12 @@ import Dashboard from "./Dashboard";
 import ChartsPage from "./ChartsPage";
 import StatisticsPage from "./StatisticsPage";
 import EarningsPage from "./EarningsPage";
+import LowStockPage from "./LowStockPage";
 import SettingsPage from "./SettingsPage";
 import TermsPage from "./TermsPage";
 import PrivacyPage from "./PrivacyPage";
+import ForgotPasswordPage from "./ForgotPasswordPage";
+import ResetPasswordPage from "./ResetPasswordPage";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { token } = useAuth();
@@ -29,17 +32,20 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard"  element={Protected(Dashboard)} />
-          <Route path="/charts"     element={Protected(ChartsPage)} />
-          <Route path="/statistics" element={Protected(StatisticsPage)} />
-          <Route path="/earnings"   element={Protected(EarningsPage)} />
-          <Route path="/settings"   element={Protected(SettingsPage)} />
-          <Route path="/terms"   element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/"                element={<LandingPage />} />
+          <Route path="/login"           element={<LoginPage />} />
+          <Route path="/register"        element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password"  element={<ResetPasswordPage />} />
+          <Route path="/dashboard"       element={Protected(Dashboard)} />
+          <Route path="/charts"          element={Protected(ChartsPage)} />
+          <Route path="/statistics"      element={Protected(StatisticsPage)} />
+          <Route path="/earnings"        element={Protected(EarningsPage)} />
+          <Route path="/lowstock"        element={Protected(LowStockPage)} />
+          <Route path="/settings"        element={Protected(SettingsPage)} />
+          <Route path="/terms"           element={<TermsPage />} />
+          <Route path="/privacy"         element={<PrivacyPage />} />
+          <Route path="*"                element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

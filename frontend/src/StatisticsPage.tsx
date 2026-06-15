@@ -111,9 +111,9 @@ export default function StatisticsPage() {
                           <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "rgba(255,255,255,0.5)" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "rgba(255,255,255,0.5)" }} />
                       <Tooltip formatter={(v) => `₱${Number(v).toLocaleString()}`} />
                       <Area type="monotone" dataKey="income" stroke="#22c55e" fill="url(#incomeGrad)" strokeWidth={2} name="Income" />
                       <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#expenseGrad)" strokeWidth={2} name="Expense" />
@@ -132,12 +132,12 @@ export default function StatisticsPage() {
                       return (
                         <div key={i} className="flex flex-col gap-1.5">
                           <div className="flex justify-between text-sm">
-                            <span className="font-semibold text-slate-900">{item.name}</span>
-                            <span className="text-gray-500">₱{fmt(item.value)}</span>
+                            <span className="font-semibold text-white">{item.name}</span>
+                            <span style={{ color: "rgba(255,255,255,0.6)" }}>₱{fmt(item.value)}</span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.12)" }}>
                             <div
-                              className="h-full bg-indigo-600 rounded-full transition-all duration-500"
+                              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

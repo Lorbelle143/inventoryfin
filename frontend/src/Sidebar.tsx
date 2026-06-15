@@ -4,16 +4,17 @@ import { useAuth } from "./AuthContext";
 type NavItem = { label: string; icon: string; path: string };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: "🏠", path: "/dashboard" },
-  { label: "Charts",    icon: "📊", path: "/charts"    },
-  { label: "Stats",     icon: "📈", path: "/statistics"},
-  { label: "Earnings",  icon: "💰", path: "/earnings"  },
-  { label: "Settings",  icon: "⚙️",  path: "/settings"  },
+  { label: "Dashboard", icon: "🏠", path: "/dashboard"  },
+  { label: "Charts",    icon: "📊", path: "/charts"     },
+  { label: "Stats",     icon: "📈", path: "/statistics" },
+  { label: "Earnings",  icon: "💰", path: "/earnings"   },
+  { label: "Low Stock", icon: "⚠️", path: "/lowstock"   },
+  { label: "Settings",  icon: "⚙️", path: "/settings"   },
 ];
 
 export default function Sidebar() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
 
   const active = (path: string) => location.pathname === path;
@@ -70,10 +71,7 @@ export default function Sidebar() {
             <span className="mobile-nav-label">{item.label}</span>
           </button>
         ))}
-        <button
-          className="mobile-nav-item"
-          onClick={() => { logout(); navigate("/"); }}
-        >
+        <button className="mobile-nav-item" onClick={() => { logout(); navigate("/"); }}>
           <span className="mobile-nav-icon">🚪</span>
           <span className="mobile-nav-label">Logout</span>
         </button>
