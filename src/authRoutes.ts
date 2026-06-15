@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcryptjs from "bcryptjs";
 import rateLimit from "express-rate-limit";
-import prisma, { initializeAccount, seedInitialInventory } from "./db";
+import { sql, initializeAccount, seedInitialInventory } from "./db";
 import { generateToken, generateRefreshToken, refreshTokenExpiresAt } from "./auth";
 
 const router = Router();
@@ -27,11 +27,15 @@ router.post("/register", authLimiter, async (req, res) => {
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return res.status(400).json({ error: "Email already registered" });
+    const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
+    if (existing.length > 0) return res.status(400).json({ error: "Email already registered" });
 
     const hashed = await bcryptjs.hash(password, 10);
-    const user = await prisma.user.create({ data: { email, password: hashed, name } });
+    const rows = await sql`
+      INSERT INTO users (email, password, name) VALUES (${email}, ${hashed}, ${name})
+      RETURNING id, email, name
+    `;
+    const user = rows[0];
 
     await initializeAccount(user.id);
     await seedInitialInventory(user.id);
@@ -40,13 +44,12 @@ router.post("/register", authLimiter, async (req, res) => {
     const refreshToken = generateRefreshToken();
     const expiresAt = refreshTokenExpiresAt();
 
-    await prisma.refreshToken.create({ data: { token: refreshToken, expiresAt, userId: user.id } });
+    await sql`
+      INSERT INTO refresh_tokens (token, user_id, expires_at)
+      VALUES (${refreshToken}, ${user.id}, ${expiresAt.toISOString()})
+    `;
 
-    res.status(201).json({
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
-      refreshToken,
-    });
+    res.status(201).json({ user: { id: user.id, email: user.email, name: user.name }, token, refreshToken });
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ error: "Registration failed" });
@@ -63,9 +66,10 @@ router.post("/login", authLimiter, async (req, res) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(401).json({ error: "Invalid email or password" });
+    const rows = await sql`SELECT id, email, name, password FROM users WHERE email = ${email}`;
+    if (rows.length === 0) return res.status(401).json({ error: "Invalid email or password" });
 
+    const user = rows[0];
     const valid = await bcryptjs.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: "Invalid email or password" });
 
@@ -76,13 +80,12 @@ router.post("/login", authLimiter, async (req, res) => {
     const refreshToken = generateRefreshToken();
     const expiresAt = refreshTokenExpiresAt();
 
-    await prisma.refreshToken.create({ data: { token: refreshToken, expiresAt, userId: user.id } });
+    await sql`
+      INSERT INTO refresh_tokens (token, user_id, expires_at)
+      VALUES (${refreshToken}, ${user.id}, ${expiresAt.toISOString()})
+    `;
 
-    res.json({
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
-      refreshToken,
-    });
+    res.json({ user: { id: user.id, email: user.email, name: user.name }, token, refreshToken });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login failed" });
@@ -96,13 +99,17 @@ router.post("/refresh", async (req, res) => {
   if (!refreshToken) return res.status(400).json({ error: "Missing refreshToken" });
 
   try {
-    const dbToken = await prisma.refreshToken.findUnique({ where: { token: refreshToken } });
+    const rows = await sql`
+      SELECT id, user_id, revoked, expires_at FROM refresh_tokens WHERE token = ${refreshToken}
+    `;
+    if (rows.length === 0) return res.status(401).json({ error: "Invalid or expired refresh token" });
 
-    if (!dbToken || dbToken.revoked || new Date(dbToken.expiresAt) < new Date()) {
+    const dbToken = rows[0];
+    if (dbToken.revoked || new Date(dbToken.expires_at) < new Date()) {
       return res.status(401).json({ error: "Invalid or expired refresh token" });
     }
 
-    const token = generateToken(dbToken.userId);
+    const token = generateToken(dbToken.user_id);
     res.json({ token });
   } catch (err) {
     console.error("Refresh error:", err);
@@ -117,10 +124,7 @@ router.post("/logout", async (req, res) => {
   if (!refreshToken) return res.status(400).json({ error: "Missing refreshToken" });
 
   try {
-    await prisma.refreshToken.updateMany({
-      where: { token: refreshToken },
-      data: { revoked: true },
-    });
+    await sql`UPDATE refresh_tokens SET revoked = TRUE WHERE token = ${refreshToken}`;
     res.json({ ok: true });
   } catch (err) {
     console.error("Logout error:", err);

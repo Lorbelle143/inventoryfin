@@ -125,9 +125,11 @@
   /* ── App shell ── */
   .page-shell {
     @apply max-w-screen-xl mx-auto my-5 flex flex-col relative;
-    background: #f8fafc;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(12px);
     border-radius: 1.5rem;
-    box-shadow: 0 30px 80px rgba(15,23,42,0.18);
+    box-shadow: 0 30px 80px rgba(15,23,42,0.35);
     overflow: visible;
     min-height: calc(100vh - 40px);
   }
@@ -172,14 +174,14 @@
   .sidebar-bottom  { @apply mt-auto pt-4 border-t; border-color: rgba(255,255,255,0.07); }
 
   /* ── Main area ── */
-  .main-area { @apply flex-1 overflow-y-auto px-9 py-8 min-w-0; background: #f8fafc; }
+  .main-area { @apply flex-1 overflow-y-auto px-9 py-8 min-w-0; background: transparent; }
   @media (max-width:768px) { .main-area { @apply px-4 py-5; } }
 
   /* ── Page header ── */
   .page-header      { @apply mb-7; }
-  .page-eyebrow     { @apply text-xs font-bold tracking-widest uppercase text-indigo-600 mb-1.5; }
-  .page-title       { @apply text-3xl font-black text-slate-900 leading-tight; }
-  .page-subtitle    { @apply text-sm text-gray-500 mt-1.5 leading-relaxed; }
+  .page-eyebrow     { @apply text-xs font-bold tracking-widest uppercase mb-1.5; color: #c4b5fd; }
+  .page-title       { @apply text-3xl font-black leading-tight text-white; }
+  .page-subtitle    { @apply text-sm mt-1.5 leading-relaxed; color: rgba(255,255,255,0.55); }
   .page-header-row  { @apply flex justify-between items-start gap-4 flex-wrap; }
   .page-header-actions { @apply flex gap-2.5 flex-wrap items-center; }
 
@@ -188,22 +190,28 @@
   @media (max-width:900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
   @media (max-width:500px) { .stats-grid { grid-template-columns: 1fr; } }
   .stat-card {
-    @apply bg-white px-6 py-5 rounded-2xl border border-gray-200;
-    box-shadow: 0 4px 20px rgba(15,23,42,0.06);
+    @apply px-6 py-5 rounded-2xl;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(15,23,42,0.15);
   }
-  .stat-card-label { @apply text-xs text-gray-500 font-medium mb-2; }
-  .stat-card-value { @apply text-2xl font-black text-slate-900 leading-none; }
-  .stat-card-sub   { @apply text-xs text-gray-500 mt-1.5; }
-  .stat-card.income .stat-card-value { @apply text-green-700; }
-  .stat-card.expense .stat-card-value { @apply text-red-700; }
-  .stat-card.accent  .stat-card-value { @apply text-indigo-600; }
+  .stat-card-label { @apply text-xs font-medium mb-2; color: rgba(255,255,255,0.6); }
+  .stat-card-value { @apply text-2xl font-black leading-none text-white; }
+  .stat-card-sub   { @apply text-xs mt-1.5; color: rgba(255,255,255,0.5); }
+  .stat-card.income .stat-card-value { @apply text-green-300; }
+  .stat-card.expense .stat-card-value { color: #fca5a5; }
+  .stat-card.accent  .stat-card-value { @apply text-violet-300; }
 
   /* ── Panel ── */
   .panel {
-    @apply bg-white rounded-2xl p-6 border border-gray-200;
-    box-shadow: 0 4px 20px rgba(15,23,42,0.06);
+    @apply rounded-2xl p-6;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(15,23,42,0.15);
   }
-  .panel-title  { @apply text-base font-bold text-slate-900 mb-4; }
+  .panel-title  { @apply text-base font-bold text-white mb-4; }
   .panel-header { @apply flex justify-between items-center mb-4 flex-wrap gap-2.5; }
   .grid-two   { @apply grid gap-5; grid-template-columns: 1fr 1fr; }
   .grid-three { @apply grid gap-5; grid-template-columns: repeat(3,1fr); }
@@ -211,57 +219,65 @@
 
   /* ── Form elements ── */
   .form-group  { @apply grid gap-1.5; }
-  .form-label  { @apply text-sm font-semibold text-gray-700; }
+  .form-label  { @apply text-sm font-semibold; color: rgba(255,255,255,0.85); }
   input, select, textarea {
-    @apply w-full px-3.5 py-2.5 border rounded-xl bg-white text-gray-900 text-sm;
-    border-color: #e5e7eb;
+    @apply w-full px-3.5 py-2.5 rounded-xl text-sm;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: white;
+    caret-color: white;
     transition: border-color .15s, box-shadow .15s;
   }
   input:focus, select:focus, textarea:focus {
-    @apply outline-none border-indigo-500;
-    box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+    @apply outline-none;
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.12);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.2);
   }
-  input::placeholder { @apply text-gray-400; }
+  input::placeholder { color: rgba(255,255,255,0.35); }
+  select option { background: #3b0764; color: white; }
 
   /* ── Search bar ── */
   .search-bar {
-    @apply flex items-center gap-2 px-3.5 py-2 rounded-xl border;
-    background: #f8fafc;
-    border-color: #e5e7eb;
+    @apply flex items-center gap-2 px-3.5 py-2 rounded-xl;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
     transition: border-color .15s;
   }
-  .search-bar:focus-within { @apply border-indigo-500; }
+  .search-bar:focus-within { border-color: rgba(255,255,255,0.4); }
   .search-bar input {
     @apply border-0 bg-transparent p-0 text-sm shadow-none;
   }
-  .search-bar input:focus { box-shadow: none; }
-  .search-icon { @apply text-gray-500 text-sm; }
+  .search-bar input:focus { box-shadow: none; background: transparent; }
+  .search-icon { @apply text-sm; color: rgba(255,255,255,0.5); }
 
   /* ── Filter tabs ── */
   .filter-tabs { @apply flex gap-1.5; }
   .filter-tab {
-    @apply px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer bg-transparent text-gray-500;
-    border-color: #e5e7eb;
+    @apply px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer bg-transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.55);
     transition: all .15s;
   }
-  .filter-tab.active { @apply bg-indigo-600 text-white border-indigo-600; }
-  .filter-tab:hover:not(.active) { @apply border-indigo-500 text-indigo-600; }
+  .filter-tab.active { background: rgba(167,139,250,0.3); color: white; border-color: rgba(167,139,250,0.5); }
+  .filter-tab:hover:not(.active) { border-color: rgba(255,255,255,0.35); color: rgba(255,255,255,0.9); }
 
   /* ── Inventory items ── */
   .item-grid { @apply grid gap-3; }
   .item-card {
-    @apply p-4 rounded-2xl border bg-white;
-    border-color: #e5e7eb;
+    @apply p-4 rounded-2xl;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
     transition: border-color .15s, box-shadow .15s;
   }
-  .item-card:hover { border-color: #c7d2fe; box-shadow: 0 4px 16px rgba(79,70,229,0.08); }
-  .item-card.item-card-low  { border-color: #fbbf24; background: #fffbeb; }
-  .item-card.item-card-out  { border-color: #fca5a5; background: #fff5f5; }
-  .item-card-name  { @apply font-bold text-slate-900 mb-1.5; }
+  .item-card:hover { border-color: rgba(167,139,250,0.5); box-shadow: 0 4px 16px rgba(79,70,229,0.15); }
+  .item-card.item-card-low  { border-color: rgba(251,191,36,0.5); background: rgba(251,191,36,0.08); }
+  .item-card.item-card-out  { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.08); }
+  .item-card-name  { @apply font-bold text-white mb-1.5; }
   .item-card-meta  { @apply flex gap-4 flex-wrap; }
-  .item-card-meta span   { @apply text-xs text-gray-500; }
-  .item-card-meta strong { @apply text-slate-900; }
-  .item-card-date    { @apply text-xs text-gray-400 mt-1.5; }
+  .item-card-meta span   { @apply text-xs; color: rgba(255,255,255,0.5); }
+  .item-card-meta strong { color: rgba(255,255,255,0.9); }
+  .item-card-date    { @apply text-xs mt-1.5; color: rgba(255,255,255,0.35); }
   .item-card-actions { @apply flex gap-2 mt-3; }
   .item-card-edit-form { @apply grid gap-2 mt-2; }
   .item-card-edit-row  { @apply grid gap-2; grid-template-columns: 1fr 80px 100px; }
@@ -274,32 +290,34 @@
   /* ── Transaction list ── */
   .transaction-list { @apply grid gap-3; }
   .transaction-card {
-    @apply px-5 py-4 rounded-2xl border bg-white;
-    border-color: #e5e7eb;
+    @apply px-5 py-4 rounded-2xl;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
     transition: border-color .15s;
   }
-  .transaction-card:hover    { border-color: #c7d2fe; }
-  .transaction-card.tx-income  { border-left: 4px solid #22c55e; }
-  .transaction-card.tx-expense { border-left: 4px solid #ef4444; }
+  .transaction-card:hover    { border-color: rgba(167,139,250,0.4); }
+  .transaction-card.tx-income  { border-left: 4px solid #4ade80; }
+  .transaction-card.tx-expense { border-left: 4px solid #f87171; }
   .transaction-header { @apply flex justify-between items-start gap-3 flex-wrap; }
-  .transaction-desc  { @apply font-bold text-slate-900; }
-  .transaction-date  { @apply text-xs text-gray-500 mt-0.5; }
+  .transaction-desc  { @apply font-bold text-white; }
+  .transaction-date  { @apply text-xs mt-0.5; color: rgba(255,255,255,0.45); }
   .transaction-right { @apply flex items-center gap-2.5 flex-shrink-0; }
   .transaction-amount       { @apply font-black text-base; }
-  .transaction-amount.income  { @apply text-green-700; }
-  .transaction-amount.expense { @apply text-red-700; }
+  .transaction-amount.income  { @apply text-green-300; }
+  .transaction-amount.expense { color: #fca5a5; }
   .transaction-items-list { @apply flex flex-wrap gap-1.5 mt-2.5; }
   .transaction-item-chip {
-    @apply px-2.5 py-1 rounded-full text-xs text-gray-700 border;
-    background: #f8fafc;
-    border-color: #e5e7eb;
+    @apply px-2.5 py-1 rounded-full text-xs;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
   }
 
   /* ── Pills ── */
   .pill { @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold; }
-  .pill.income  { @apply bg-green-50 text-green-700; }
-  .pill.expense { @apply bg-red-50 text-red-700; }
-  .pill.neutral { @apply bg-indigo-50 text-indigo-800; }
+  .pill.income  { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .pill.expense { background: rgba(248,113,113,0.15); color: #f87171; }
+  .pill.neutral { background: rgba(167,139,250,0.15); color: #c4b5fd; }
 
   /* ── Transaction form ── */
   .tx-form { @apply grid gap-4; }
@@ -315,12 +333,12 @@
   }
   .remove-btn:hover { opacity: .75; }
   .form-total {
-    @apply flex justify-between items-center px-4 py-3.5 rounded-xl border;
-    background: #f8fafc;
-    border-color: #e5e7eb;
+    @apply flex justify-between items-center px-4 py-3.5 rounded-xl;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
   }
-  .form-total-label { @apply text-sm text-gray-500 font-medium; }
-  .form-total-value { @apply text-xl font-black text-slate-900; }
+  .form-total-label { @apply text-sm font-medium; color: rgba(255,255,255,0.6); }
+  .form-total-value { @apply text-xl font-black text-white; }
   .form-total-value.income  { @apply text-green-700; }
   .form-total-value.expense { @apply text-red-700; }
   .tx-submit-btn.income  { @apply bg-green-600; }
@@ -345,12 +363,16 @@
     background: rgba(15,23,42,0.65);
   }
   .modal {
-    @apply bg-white rounded-2xl p-7;
+    @apply rounded-2xl p-7;
     width: min(92vw,440px);
-    box-shadow: 0 30px 80px rgba(15,23,42,0.2);
+    background: rgba(59,7,100,0.85);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 30px 80px rgba(15,23,42,0.4);
+    color: white;
   }
-  .modal h3 { @apply text-lg font-black mb-2; }
-  .modal p  { @apply text-slate-500 leading-relaxed text-sm; }
+  .modal h3 { @apply text-lg font-black mb-2 text-white; }
+  .modal p  { @apply leading-relaxed text-sm; color: rgba(255,255,255,0.65); }
   .modal-actions { @apply flex justify-end gap-2.5 mt-6; }
   .balance-modal { width: min(92vw,380px); }
   .balance-modal .form-group { @apply mt-4; }
@@ -364,11 +386,14 @@
   .charts-grid  { @apply grid gap-5; grid-template-columns: 1fr 1fr; }
   @media (max-width:800px) { .charts-grid { grid-template-columns: 1fr; } }
   .chart-panel {
-    @apply bg-white rounded-2xl p-6 border border-gray-200;
-    box-shadow: 0 4px 20px rgba(15,23,42,0.06);
+    @apply rounded-2xl p-6;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(15,23,42,0.15);
   }
-  .chart-panel h3 { @apply text-base font-bold text-slate-900 mb-4; }
-  .chart-empty    { @apply flex items-center justify-center h-52 text-gray-400 text-sm; }
+  .chart-panel h3 { @apply text-base font-bold mb-4 text-white; }
+  .chart-empty    { @apply flex items-center justify-center h-52 text-sm; color: rgba(255,255,255,0.4); }
 
   /* ── Stats summary grid ── */
   .stats-summary-grid { @apply grid gap-4 mb-6; grid-template-columns: repeat(3,1fr); }
@@ -378,14 +403,19 @@
 
   /* ── Settings ── */
   .settings-grid    { @apply grid gap-5 max-w-xl; }
-  .settings-section { @apply bg-white rounded-2xl p-6 border border-gray-200; }
-  .settings-section h3 { @apply text-base font-bold text-slate-900 mb-4; }
+  .settings-section {
+    @apply rounded-2xl p-6;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(10px);
+  }
+  .settings-section h3 { @apply text-base font-bold mb-4 text-white; }
   .settings-form    { @apply grid gap-3.5; }
 
   /* ── Empty state ── */
-  .empty-state { @apply flex flex-col items-center justify-center py-12 px-6 text-gray-500 text-center gap-2; }
+  .empty-state { @apply flex flex-col items-center justify-center py-12 px-6 text-center gap-2; color: rgba(255,255,255,0.5); }
   .empty-state-icon  { @apply text-4xl mb-1; }
-  .empty-state-title { @apply font-bold text-gray-700 text-base; }
+  .empty-state-title { @apply font-bold text-base; color: rgba(255,255,255,0.7); }
   .empty-state-desc  { @apply text-sm; }
 
   /* ── Spinner ── */
@@ -476,7 +506,7 @@
 
   /* ── Responsive overrides ── */
   @media (max-width:600px) {
-    .page-shell { @apply m-0 rounded-none min-h-screen; }
+    .page-shell { @apply m-0 rounded-none min-h-screen; background: transparent; }
     .app-layout { @apply flex-col; }
     /* Hide desktop sidebar on mobile */
     .sidebar    { display: none !important; }

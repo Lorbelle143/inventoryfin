@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcryptjs from "bcryptjs";
-import prisma, { initializeAccount, seedInitialInventory } from "./db";
+import { sql } from "./db";
 import { TransactionPayload } from "./types";
 import { AuthRequest } from "./auth";
 
@@ -10,15 +10,19 @@ const router = Router();
 
 router.get("/status", async (req: AuthRequest, res) => {
   const userId = req.userId!;
-  const [account, items] = await Promise.all([
-    prisma.account.findUnique({ where: { userId } }),
-    prisma.inventoryItem.findMany({ where: { userId }, orderBy: { updatedAt: "desc" } }),
+  const [accountRows, items] = await Promise.all([
+    sql`SELECT balance FROM accounts WHERE user_id = ${userId}`,
+    sql`SELECT * FROM inventory_items WHERE user_id = ${userId} ORDER BY updated_at DESC`,
   ]);
-  const totalInventoryValue = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const totalInventoryValue = items.reduce((s: number, i: any) => s + i.quantity * i.unit_price, 0);
   res.json({
-    balance: account?.balance ?? 0,
+    balance: accountRows[0]?.balance ?? 0,
     totalInventoryValue,
-    items: items.map(i => ({ ...i, totalValue: i.quantity * i.unitPrice })),
+    items: items.map((i: any) => ({
+      id: i.id, name: i.name, quantity: i.quantity,
+      unitPrice: i.unit_price, totalValue: i.quantity * i.unit_price,
+      createdAt: i.created_at, updatedAt: i.updated_at,
+    })),
   });
 });
 
@@ -26,19 +30,19 @@ router.get("/status", async (req: AuthRequest, res) => {
 
 router.get("/stats", async (req: AuthRequest, res) => {
   const userId = req.userId!;
-  const [account, items, transactions] = await Promise.all([
-    prisma.account.findUnique({ where: { userId } }),
-    prisma.inventoryItem.findMany({ where: { userId } }),
-    prisma.transaction.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
+  const [accountRows, items, transactions] = await Promise.all([
+    sql`SELECT balance FROM accounts WHERE user_id = ${userId}`,
+    sql`SELECT * FROM inventory_items WHERE user_id = ${userId}`,
+    sql`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at ASC`,
   ]);
 
-  const totalInventoryValue = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-  const incomeTotal  = transactions.filter(t => t.type === "income" ).reduce((s, t) => s + t.amount, 0);
-  const expenseTotal = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const totalInventoryValue = items.reduce((s: number, i: any) => s + i.quantity * i.unit_price, 0);
+  const incomeTotal  = transactions.filter((t: any) => t.type === "income" ).reduce((s: number, t: any) => s + t.amount, 0);
+  const expenseTotal = transactions.filter((t: any) => t.type === "expense").reduce((s: number, t: any) => s + t.amount, 0);
 
   const dailyMap = new Map<string, { income: number; expense: number }>();
-  for (const t of transactions) {
-    const day = new Date(t.createdAt).toISOString().slice(0, 10);
+  for (const t of transactions as any[]) {
+    const day = new Date(t.created_at).toISOString().slice(0, 10);
     const entry = dailyMap.get(day) ?? { income: 0, expense: 0 };
     if (t.type === "income") entry.income += t.amount;
     else entry.expense += t.amount;
@@ -48,13 +52,13 @@ router.get("/stats", async (req: AuthRequest, res) => {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({ date, ...v }));
 
-  const topItems = items
-    .map(i => ({ name: i.name, value: i.quantity * i.unitPrice }))
+  const topItems = (items as any[])
+    .map(i => ({ name: i.name, value: i.quantity * i.unit_price }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
 
   res.json({
-    balance: account?.balance ?? 0,
+    balance: accountRows[0]?.balance ?? 0,
     totalInventoryValue,
     incomeTotal,
     expenseTotal,
@@ -69,12 +73,9 @@ router.get("/stats", async (req: AuthRequest, res) => {
 
 router.get("/me", async (req: AuthRequest, res) => {
   const userId = req.userId!;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true },
-  });
-  if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ user });
+  const rows = await sql`SELECT id, email, name FROM users WHERE id = ${userId}`;
+  if (rows.length === 0) return res.status(404).json({ error: "User not found" });
+  res.json({ user: rows[0] });
 });
 
 // ─── Inventory Items ──────────────────────────────────────────────────────────
@@ -82,11 +83,15 @@ router.get("/me", async (req: AuthRequest, res) => {
 router.get("/items", async (req: AuthRequest, res) => {
   const userId = req.userId!;
   const search = (req.query.search as string) || "";
-  const items = await prisma.inventoryItem.findMany({
-    where: { userId, ...(search ? { name: { contains: search } } : {}) },
-    orderBy: { updatedAt: "desc" },
-  });
-  res.json(items.map(i => ({ ...i, totalValue: i.quantity * i.unitPrice })));
+  const items = search
+    ? await sql`SELECT * FROM inventory_items WHERE user_id = ${userId} AND name ILIKE ${"%" + search + "%"} ORDER BY updated_at DESC`
+    : await sql`SELECT * FROM inventory_items WHERE user_id = ${userId} ORDER BY updated_at DESC`;
+
+  res.json(items.map((i: any) => ({
+    id: i.id, name: i.name, quantity: i.quantity,
+    unitPrice: i.unit_price, totalValue: i.quantity * i.unit_price,
+    createdAt: i.created_at, updatedAt: i.updated_at,
+  })));
 });
 
 router.post("/items", async (req: AuthRequest, res) => {
@@ -95,10 +100,17 @@ router.post("/items", async (req: AuthRequest, res) => {
   if (!name || typeof quantity !== "number" || typeof unitPrice !== "number") {
     return res.status(400).json({ error: "Invalid item payload" });
   }
-  const item = await prisma.inventoryItem.create({
-    data: { name, quantity, unitPrice, totalValue: quantity * unitPrice, userId },
+  const rows = await sql`
+    INSERT INTO inventory_items (user_id, name, quantity, unit_price, total_value)
+    VALUES (${userId}, ${name}, ${quantity}, ${unitPrice}, ${quantity * unitPrice})
+    RETURNING *
+  `;
+  const i = rows[0];
+  res.status(201).json({
+    id: i.id, name: i.name, quantity: i.quantity,
+    unitPrice: i.unit_price, totalValue: i.quantity * i.unit_price,
+    createdAt: i.created_at, updatedAt: i.updated_at,
   });
-  res.status(201).json({ ...item, totalValue: item.quantity * item.unitPrice });
 });
 
 router.patch("/items/:id", async (req: AuthRequest, res) => {
@@ -106,20 +118,29 @@ router.patch("/items/:id", async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
 
-  const existing = await prisma.inventoryItem.findFirst({ where: { id, userId } });
-  if (!existing) return res.status(404).json({ error: "Item not found" });
+  const existing = await sql`SELECT * FROM inventory_items WHERE id = ${id} AND user_id = ${userId}`;
+  if (existing.length === 0) return res.status(404).json({ error: "Item not found" });
 
+  const cur = existing[0];
   const { name, quantity, unitPrice } = req.body as Partial<{ name: string; quantity: number; unitPrice: number }>;
-  const data: { name?: string; quantity?: number; unitPrice?: number; totalValue: number } = {
-    totalValue: (typeof quantity === "number" ? quantity : existing.quantity)
-              * (typeof unitPrice === "number" ? unitPrice : existing.unitPrice),
-  };
-  if (name !== undefined) data.name = name;
-  if (typeof quantity === "number") data.quantity = quantity;
-  if (typeof unitPrice === "number") data.unitPrice = unitPrice;
+  const newName      = name      !== undefined ? name      : cur.name;
+  const newQty       = typeof quantity  === "number" ? quantity  : cur.quantity;
+  const newUnitPrice = typeof unitPrice === "number" ? unitPrice : cur.unit_price;
+  const newTotal     = newQty * newUnitPrice;
 
-  const updated = await prisma.inventoryItem.update({ where: { id }, data });
-  res.json({ ...updated, totalValue: updated.quantity * updated.unitPrice });
+  const rows = await sql`
+    UPDATE inventory_items
+    SET name = ${newName}, quantity = ${newQty}, unit_price = ${newUnitPrice},
+        total_value = ${newTotal}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  const i = rows[0];
+  res.json({
+    id: i.id, name: i.name, quantity: i.quantity,
+    unitPrice: i.unit_price, totalValue: i.quantity * i.unit_price,
+    createdAt: i.created_at, updatedAt: i.updated_at,
+  });
 });
 
 router.delete("/items/:id", async (req: AuthRequest, res) => {
@@ -127,19 +148,15 @@ router.delete("/items/:id", async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
 
-  const item = await prisma.inventoryItem.findFirst({
-    where: { id, userId },
-    include: { _count: { select: { transactions: true } } },
-  });
-  if (!item) return res.status(404).json({ error: "Item not found" });
+  const item = await sql`SELECT id FROM inventory_items WHERE id = ${id} AND user_id = ${userId}`;
+  if (item.length === 0) return res.status(404).json({ error: "Item not found" });
 
-  if (item._count.transactions > 0) {
-    return res.status(409).json({
-      error: "Cannot delete item — it has transaction history. Delete the transactions first.",
-    });
+  const txCount = await sql`SELECT COUNT(*) as c FROM item_transactions WHERE item_id = ${id}`;
+  if (Number(txCount[0].c) > 0) {
+    return res.status(409).json({ error: "Cannot delete item — it has transaction history." });
   }
 
-  await prisma.inventoryItem.delete({ where: { id } });
+  await sql`DELETE FROM inventory_items WHERE id = ${id}`;
   res.status(204).end();
 });
 
@@ -147,29 +164,73 @@ router.delete("/items/:id", async (req: AuthRequest, res) => {
 
 router.get("/transactions", async (req: AuthRequest, res) => {
   const userId = req.userId!;
-  const limit  = Math.min(Number(req.query.limit  ?? 50),  200);
+  const limit  = Math.min(Number(req.query.limit  ?? 50), 200);
   const offset = Number(req.query.offset ?? 0);
   const search = (req.query.search as string) || "";
   const typeFilter = req.query.type as string | undefined;
 
-  const where = {
-    userId,
-    ...(search ? { description: { contains: search } } : {}),
-    ...(typeFilter === "income" || typeFilter === "expense" ? { type: typeFilter } : {}),
-  };
+  let transactions: any[];
+  let totalRows: any[];
 
-  const [transactions, total] = await Promise.all([
-    prisma.transaction.findMany({
-      where,
-      include: { items: { include: { item: true } } },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
-    }),
-    prisma.transaction.count({ where }),
-  ]);
+  if (search && (typeFilter === "income" || typeFilter === "expense")) {
+    transactions = await sql`
+      SELECT * FROM transactions WHERE user_id = ${userId}
+      AND description ILIKE ${"%" + search + "%"} AND type = ${typeFilter}
+      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    totalRows = await sql`
+      SELECT COUNT(*) as c FROM transactions WHERE user_id = ${userId}
+      AND description ILIKE ${"%" + search + "%"} AND type = ${typeFilter}
+    `;
+  } else if (search) {
+    transactions = await sql`
+      SELECT * FROM transactions WHERE user_id = ${userId}
+      AND description ILIKE ${"%" + search + "%"}
+      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    totalRows = await sql`
+      SELECT COUNT(*) as c FROM transactions WHERE user_id = ${userId}
+      AND description ILIKE ${"%" + search + "%"}
+    `;
+  } else if (typeFilter === "income" || typeFilter === "expense") {
+    transactions = await sql`
+      SELECT * FROM transactions WHERE user_id = ${userId} AND type = ${typeFilter}
+      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    totalRows = await sql`
+      SELECT COUNT(*) as c FROM transactions WHERE user_id = ${userId} AND type = ${typeFilter}
+    `;
+  } else {
+    transactions = await sql`
+      SELECT * FROM transactions WHERE user_id = ${userId}
+      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    totalRows = await sql`SELECT COUNT(*) as c FROM transactions WHERE user_id = ${userId}`;
+  }
 
-  res.json({ data: transactions, pagination: { total, limit, offset } });
+  // Attach items to each transaction
+  const txIds = transactions.map((t: any) => t.id);
+  let itemRows: any[] = [];
+  if (txIds.length > 0) {
+    itemRows = await sql`
+      SELECT it.*, i.name, i.unit_price FROM item_transactions it
+      JOIN inventory_items i ON i.id = it.item_id
+      WHERE it.transaction_id = ANY(${txIds})
+    `;
+  }
+
+  const result = transactions.map((t: any) => ({
+    id: t.id, type: t.type, description: t.description,
+    amount: t.amount, createdAt: t.created_at,
+    items: itemRows
+      .filter((r: any) => r.transaction_id === t.id)
+      .map((r: any) => ({
+        id: r.id, quantity: r.quantity, unitPrice: r.unit_price,
+        item: { id: r.item_id, name: r.name },
+      })),
+  }));
+
+  res.json({ data: result, pagination: { total: Number(totalRows[0].c), limit, offset } });
 });
 
 router.post("/transactions", async (req: AuthRequest, res) => {
@@ -180,53 +241,61 @@ router.post("/transactions", async (req: AuthRequest, res) => {
     return res.status(400).json({ error: "Invalid transaction payload" });
   }
 
-  const account = await prisma.account.findUnique({ where: { userId } });
-  if (!account) return res.status(500).json({ error: "Account not initialized" });
+  const accountRows = await sql`SELECT id, balance FROM accounts WHERE user_id = ${userId}`;
+  if (accountRows.length === 0) return res.status(500).json({ error: "Account not initialized" });
 
+  const account = accountRows[0];
   const newBalance = payload.type === "expense"
     ? account.balance - payload.amount
     : account.balance + payload.amount;
 
   if (newBalance < 0) return res.status(400).json({ error: "Insufficient balance" });
 
-  // Process items and update inventory
-  const itemConnects: { item: { connect: { id: number } }; quantity: number; unitPrice: number }[] = [];
+  // Create transaction
+  const txRows = await sql`
+    INSERT INTO transactions (user_id, type, description, amount)
+    VALUES (${userId}, ${payload.type}, ${payload.description}, ${payload.amount})
+    RETURNING id
+  `;
+  const transactionId = txRows[0].id;
 
+  // Process items
   for (const item of payload.items) {
-    let inv = await prisma.inventoryItem.findFirst({ where: { name: item.name, userId } });
+    const invRows = await sql`
+      SELECT * FROM inventory_items WHERE user_id = ${userId} AND name = ${item.name}
+    `;
 
-    if (!inv) {
-      inv = await prisma.inventoryItem.create({
-        data: { name: item.name, quantity: item.quantity, unitPrice: item.unitPrice,
-                totalValue: item.quantity * item.unitPrice, userId },
-      });
+    let invId: number;
+    if (invRows.length === 0) {
+      const newInv = await sql`
+        INSERT INTO inventory_items (user_id, name, quantity, unit_price, total_value)
+        VALUES (${userId}, ${item.name}, ${item.quantity}, ${item.unitPrice}, ${item.quantity * item.unitPrice})
+        RETURNING id
+      `;
+      invId = newInv[0].id;
     } else {
+      const inv = invRows[0];
       const newQty = payload.type === "expense"
         ? inv.quantity + item.quantity
         : Math.max(0, inv.quantity - item.quantity);
-      inv = await prisma.inventoryItem.update({
-        where: { id: inv.id },
-        data: { quantity: newQty, unitPrice: item.unitPrice, totalValue: newQty * item.unitPrice },
-      });
+      await sql`
+        UPDATE inventory_items
+        SET quantity = ${newQty}, unit_price = ${item.unitPrice},
+            total_value = ${newQty * item.unitPrice}, updated_at = NOW()
+        WHERE id = ${inv.id}
+      `;
+      invId = inv.id;
     }
 
-    itemConnects.push({ item: { connect: { id: inv.id } }, quantity: item.quantity, unitPrice: item.unitPrice });
+    await sql`
+      INSERT INTO item_transactions (transaction_id, item_id, quantity, unit_price)
+      VALUES (${transactionId}, ${invId}, ${item.quantity}, ${item.unitPrice})
+    `;
   }
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      type: payload.type,
-      description: payload.description,
-      amount: payload.amount,
-      userId,
-      items: { create: itemConnects },
-    },
-    include: { items: { include: { item: true } } },
-  });
+  await sql`UPDATE accounts SET balance = ${newBalance}, updated_at = NOW() WHERE id = ${account.id}`;
 
-  await prisma.account.update({ where: { id: account.id }, data: { balance: newBalance } });
-
-  res.status(201).json({ transaction, balance: newBalance });
+  res.status(201).json({ transaction: { id: transactionId }, balance: newBalance });
 });
 
 router.delete("/transactions/:id", async (req: AuthRequest, res) => {
@@ -234,35 +303,41 @@ router.delete("/transactions/:id", async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
 
-  const tx = await prisma.transaction.findFirst({
-    where: { id, userId },
-    include: { items: { include: { item: true } } },
-  });
-  if (!tx) return res.status(404).json({ error: "Transaction not found" });
+  const txRows = await sql`SELECT * FROM transactions WHERE id = ${id} AND user_id = ${userId}`;
+  if (txRows.length === 0) return res.status(404).json({ error: "Transaction not found" });
+
+  const tx = txRows[0];
+  const itemTxRows = await sql`
+    SELECT it.*, i.quantity as inv_qty, i.unit_price as inv_unit_price
+    FROM item_transactions it
+    JOIN inventory_items i ON i.id = it.item_id
+    WHERE it.transaction_id = ${id}
+  `;
 
   // Reverse inventory
-  for (const txItem of tx.items) {
-    const inv = txItem.item;
+  for (const row of itemTxRows as any[]) {
     const reversedQty = tx.type === "expense"
-      ? Math.max(0, inv.quantity - txItem.quantity)
-      : inv.quantity + txItem.quantity;
-    await prisma.inventoryItem.update({
-      where: { id: inv.id },
-      data: { quantity: reversedQty, totalValue: reversedQty * inv.unitPrice },
-    });
+      ? Math.max(0, row.inv_qty - row.quantity)
+      : row.inv_qty + row.quantity;
+    await sql`
+      UPDATE inventory_items
+      SET quantity = ${reversedQty}, total_value = ${reversedQty * row.inv_unit_price}, updated_at = NOW()
+      WHERE id = ${row.item_id}
+    `;
   }
 
   // Reverse balance
-  const account = await prisma.account.findUnique({ where: { userId } });
-  if (account) {
+  const accountRows = await sql`SELECT id, balance FROM accounts WHERE user_id = ${userId}`;
+  if (accountRows.length > 0) {
+    const acc = accountRows[0];
     const reversedBalance = tx.type === "expense"
-      ? account.balance + tx.amount
-      : account.balance - tx.amount;
-    await prisma.account.update({ where: { id: account.id }, data: { balance: reversedBalance } });
+      ? acc.balance + tx.amount
+      : acc.balance - tx.amount;
+    await sql`UPDATE accounts SET balance = ${reversedBalance}, updated_at = NOW() WHERE id = ${acc.id}`;
   }
 
-  await prisma.itemTransaction.deleteMany({ where: { transactionId: id } });
-  await prisma.transaction.delete({ where: { id } });
+  await sql`DELETE FROM item_transactions WHERE transaction_id = ${id}`;
+  await sql`DELETE FROM transactions WHERE id = ${id}`;
   res.status(204).end();
 });
 
@@ -270,8 +345,8 @@ router.delete("/transactions/:id", async (req: AuthRequest, res) => {
 
 router.get("/account", async (req: AuthRequest, res) => {
   const userId = req.userId!;
-  const account = await prisma.account.findUnique({ where: { userId } });
-  res.json({ balance: account?.balance ?? 0 });
+  const rows = await sql`SELECT balance FROM accounts WHERE user_id = ${userId}`;
+  res.json({ balance: rows[0]?.balance ?? 0 });
 });
 
 router.patch("/account", async (req: AuthRequest, res) => {
@@ -280,10 +355,12 @@ router.patch("/account", async (req: AuthRequest, res) => {
   if (typeof balance !== "number" || Number.isNaN(balance) || balance < 0) {
     return res.status(400).json({ error: "Invalid balance value" });
   }
-  const account = await prisma.account.findUnique({ where: { userId } });
-  if (!account) return res.status(404).json({ error: "Account not found" });
-  const updated = await prisma.account.update({ where: { id: account.id }, data: { balance } });
-  res.json({ balance: updated.balance });
+  const rows = await sql`
+    UPDATE accounts SET balance = ${balance}, updated_at = NOW()
+    WHERE user_id = ${userId} RETURNING balance
+  `;
+  if (rows.length === 0) return res.status(404).json({ error: "Account not found" });
+  res.json({ balance: rows[0].balance });
 });
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
@@ -294,12 +371,11 @@ router.patch("/profile", async (req: AuthRequest, res) => {
   if (!name || typeof name !== "string" || !name.trim()) {
     return res.status(400).json({ error: "Name is required" });
   }
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { name: name.trim() },
-    select: { id: true, email: true, name: true },
-  });
-  res.json({ user: updated });
+  const rows = await sql`
+    UPDATE users SET name = ${name.trim()}, updated_at = NOW()
+    WHERE id = ${userId} RETURNING id, email, name
+  `;
+  res.json({ user: rows[0] });
 });
 
 router.patch("/profile/password", async (req: AuthRequest, res) => {
@@ -311,12 +387,14 @@ router.patch("/profile/password", async (req: AuthRequest, res) => {
   if (newPassword.length < 6) {
     return res.status(400).json({ error: "New password must be at least 6 characters" });
   }
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return res.status(404).json({ error: "User not found" });
-  const valid = await bcryptjs.compare(currentPassword, user.password);
+  const rows = await sql`SELECT password FROM users WHERE id = ${userId}`;
+  if (rows.length === 0) return res.status(404).json({ error: "User not found" });
+
+  const valid = await bcryptjs.compare(currentPassword, rows[0].password);
   if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
+
   const hashed = await bcryptjs.hash(newPassword, 10);
-  await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+  await sql`UPDATE users SET password = ${hashed}, updated_at = NOW() WHERE id = ${userId}`;
   res.json({ ok: true });
 });
 
