@@ -7,7 +7,7 @@
     "dev:api": "ts-node-dev --respawn --transpile-only src/index.ts",
     "dev:web": "npm run dev --prefix frontend",
     "build": "tsc",
-    "build:vercel": "npx prisma generate && npm install --prefix frontend && npm run build --prefix frontend",
+    "build:vercel": "npx prisma generate && npm install --prefix frontend && npm run build --prefix frontend && cp -r frontend/dist/. public",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
